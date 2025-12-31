@@ -3,7 +3,7 @@ from tools.llm import llm
 def critic(state):
     iteration = state.get("iteration", 1)
 
-    # 🚨 Force at least one refinement cycle
+    # Force at least one refinement cycle
     if iteration == 1:
         return {
             **state,

@@ -12,8 +12,7 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
-# ❌ DO NOT CREATE INDEX AUTOMATICALLY
-# ✔ Assume index already exists (free-tier safe)
+
 index = pc.Index(INDEX_NAME)
 
 

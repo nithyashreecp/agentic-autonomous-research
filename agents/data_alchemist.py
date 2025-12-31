@@ -11,10 +11,10 @@ def safe_arxiv(query):
         return []
 
 def data_alchemist(state):
-    # ✅ FIX: ensure questions are strings
+    
     questions = state.get("questions", [])
 
-    # Flatten and extract keywords safely
+   
     keywords = []
     for q in questions:
         if isinstance(q, str):

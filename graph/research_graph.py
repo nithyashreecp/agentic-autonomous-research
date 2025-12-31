@@ -31,7 +31,7 @@ def build_graph():
     g.add_edge("eda", "experiment")
     g.add_edge("experiment", "critic")
 
-    # ✅ SINGLE, GUARANTEED EXIT LOGIC
+    #  SINGLE, GUARANTEED EXIT LOGIC
     g.add_conditional_edges(
         "critic",
         lambda s: "end" if s.get("stop") or s["decision"] == "ACCEPT" else "retry",

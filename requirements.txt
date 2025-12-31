@@ -1,0 +1,10 @@
+streamlit
+langgraph
+langchain-groq
+python-dotenv
+arxiv
+requests
+beautifulsoup4
+plotly
+pinecone
+sentence-transformers

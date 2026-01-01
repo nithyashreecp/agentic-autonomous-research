@@ -45,4 +45,11 @@ def data_alchemist(state):
             {"type": "papers", "data": papers},                  
             {"type": "structured_csv", "stats": metadata_stats}, 
             web_signals                                          
+        ]
     }
+
+
+
+
+
+

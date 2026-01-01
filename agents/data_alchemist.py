@@ -1,58 +1,53 @@
 import arxiv
 import requests
 import pandas as pd
-from io import StringIO
-
-def safe_arxiv(query):
-    try:
-        search = arxiv.Search(query=query, max_results=3)
-        return list(search.results())
-    except Exception:
-        return []
+from tools.llm import llm
 
 def data_alchemist(state):
-    
     questions = state.get("questions", [])
+    keyword_query = " ".join(" ".join(questions).split()[:12])
 
-   
-    keywords = []
-    for q in questions:
-        if isinstance(q, str):
-            keywords.extend(q.replace("?", "").split()[:5])
+    # --- Source 1: arXiv papers ---
+    papers = []
+    try:
+        search = arxiv.Search(query=keyword_query, max_results=3)
+        for p in search.results():
+            papers.append({
+                "type": "paper",
+                "title": p.title,
+                "summary": p.summary,
+                "link": p.entry_id
+            })
+    except Exception:
+        pass
 
-    keyword_query = " ".join(keywords[:10])  # arXiv-safe length
+    # --- Source 2: GitHub repo signals ---
+    github_data = []
+    try:
+        resp = requests.get(
+            f"https://api.github.com/search/repositories?q={keyword_query}&sort=stars",
+            timeout=10
+        ).json()
 
-    papers = safe_arxiv(keyword_query)
+        for r in resp.get("items", [])[:5]:
+            github_data.append({
+                "repo": r["full_name"],
+                "stars": r["stargazers_count"],
+                "forks": r["forks_count"]
+            })
+    except Exception:
+        pass
+
+    github_df = pd.DataFrame(github_data)
+
+    # --- Source 3: Structured numeric summary ---
+    structured_stats = github_df.describe().to_dict() if not github_df.empty else {}
 
     sources = [
-        {
-            "type": "paper",
-            "title": p.title,
-            "summary": p.summary,
-            "link": p.entry_id
-        }
-        for p in papers
+        {"type": "papers", "data": papers},
+        {"type": "github_metrics", "data": github_data},
+        {"type": "stats", "data": structured_stats}
     ]
-
-    # CSV source + cleaning
-    csv_text = requests.get(
-        "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv",
-        timeout=10
-    ).text
-
-    df = pd.read_csv(StringIO(csv_text)).dropna()
-    stats = df.describe().to_dict()
-
-    sources.append({
-        "type": "csv_cleaned",
-        "stats": stats
-    })
-
-    # Web/domain signal
-    sources.append({
-        "type": "web",
-        "text": " ".join(state.get("domains", []))
-    })
 
     return {**state, "data_sources": sources}
 

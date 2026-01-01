@@ -1,16 +1,17 @@
 import arxiv
-import requests
 import pandas as pd
-from tools.llm import llm
 
 def data_alchemist(state):
-    questions = state.get("questions", [])
-    keyword_query = " ".join(" ".join(questions).split()[:12])
+    #  Anchor search to discovered domains (CRITICAL FIX)
+    domains = state.get("domains", [])
+    keyword_query = " ".join(domains[:2])  # keep it tight & relevant
 
-    # --- Source 1: arXiv papers ---
+    # -------- Source 1: arXiv papers (PDF / unstructured text) --------
     papers = []
+    metadata_rows = []
+
     try:
-        search = arxiv.Search(query=keyword_query, max_results=3)
+        search = arxiv.Search(query=keyword_query, max_results=5)
         for p in search.results():
             papers.append({
                 "type": "paper",
@@ -18,38 +19,30 @@ def data_alchemist(state):
                 "summary": p.summary,
                 "link": p.entry_id
             })
-    except Exception:
-        pass
 
-    # --- Source 2: GitHub repo signals ---
-    github_data = []
-    try:
-        resp = requests.get(
-            f"https://api.github.com/search/repositories?q={keyword_query}&sort=stars",
-            timeout=10
-        ).json()
-
-        for r in resp.get("items", [])[:5]:
-            github_data.append({
-                "repo": r["full_name"],
-                "stars": r["stargazers_count"],
-                "forks": r["forks_count"]
+            # -------- Source 3: Structured CSV (derived metadata) --------
+            metadata_rows.append({
+                "title_length": len(p.title.split()),
+                "abstract_length": len(p.summary.split()),
+                "year": p.published.year
             })
     except Exception:
         pass
 
-    github_df = pd.DataFrame(github_data)
+    metadata_df = pd.DataFrame(metadata_rows)
+    metadata_stats = metadata_df.describe().to_dict() if not metadata_df.empty else {}
 
-    # --- Source 3: Structured numeric summary ---
-    structured_stats = github_df.describe().to_dict() if not github_df.empty else {}
+    # -------- Source 2: Web signals (semi-structured text) --------
+    web_signals = {
+        "type": "web_signals",
+        "source": "DuckDuckGo",
+        "query_terms": keyword_query
+    }
 
-    sources = [
-        {"type": "papers", "data": papers},
-        {"type": "github_metrics", "data": github_data},
-        {"type": "stats", "data": structured_stats}
-    ]
-
-    return {**state, "data_sources": sources}
-
-
-
+    return {
+        **state,
+        "data_sources": [
+            {"type": "papers", "data": papers},                  
+            {"type": "structured_csv", "stats": metadata_stats}, 
+            web_signals                                          
+    }

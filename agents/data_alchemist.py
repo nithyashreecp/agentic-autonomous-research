@@ -2,11 +2,11 @@ import arxiv
 import pandas as pd
 
 def data_alchemist(state):
-    #  Anchor search to discovered domains (CRITICAL FIX)
+    #  Anchor search to discovered domains
     domains = state.get("domains", [])
-    keyword_query = " ".join(domains[:2])  # keep it tight & relevant
+    keyword_query = " ".join(domains[:2])  
 
-    # -------- Source 1: arXiv papers (PDF / unstructured text) --------
+    # arXiv papers 
     papers = []
     metadata_rows = []
 
@@ -20,7 +20,7 @@ def data_alchemist(state):
                 "link": p.entry_id
             })
 
-            # -------- Source 3: Structured CSV (derived metadata) --------
+            # CSV (derived metadata) 
             metadata_rows.append({
                 "title_length": len(p.title.split()),
                 "abstract_length": len(p.summary.split()),
@@ -32,7 +32,7 @@ def data_alchemist(state):
     metadata_df = pd.DataFrame(metadata_rows)
     metadata_stats = metadata_df.describe().to_dict() if not metadata_df.empty else {}
 
-    # -------- Source 2: Web signals (semi-structured text) --------
+    # Web signals 
     web_signals = {
         "type": "web_signals",
         "source": "DuckDuckGo",
